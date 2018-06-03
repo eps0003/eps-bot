@@ -1,0 +1,5 @@
+{
+  "token": process.env.TOKEN,
+  "guild": "452782170180812810",
+  "prefix": "-"
+}
