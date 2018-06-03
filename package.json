@@ -1,0 +1,15 @@
+{
+	"name": "eps-bot",
+	"version": "1.0.0",
+	"description": "A King Arthur's Gold Discord bot",
+	"main": "index.js",
+	"scripts": {
+		"start": "node index.js"
+	},
+	"dependencies": {
+		"discord.js": "11.3.2",
+		"mysql": "2.15.0",
+		"node": "^10.3.0",
+		"xmlhttprequest": "1.8.0"
+	}
+}
