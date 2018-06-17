@@ -24,6 +24,8 @@ client.on('error', console.error);
 client.on('ready', () => {
 	console.log(`Logged in as ${client.user.username} on ${client.guilds.size} server(s)`);
 
+	console.log(func.plural('player', 1))
+
 	func.getChannel(config.mainServerList.channel).fetchMessage(config.mainServerList.message).then((message) => {
 		messages.mainServerList = message;
 		console.log('Fetched main server list');
@@ -84,7 +86,7 @@ function loop() {
 
 function updateMainServerList(servers) {
 	if (!messages.mainServerList) return;
-	let text = '```md\n' + `# Server list - ${servers.length} servers, ${servers.reduce((t, x) => {return t + x.currentPlayers}, 0)} players` + '``````diff';
+	let text = '```md\n' + `# Server list - ${servers.length} servers, ${servers.reduce((t, x) => t + x.currentPlayers, 0)} players` + '``````diff';
 	if (!servers.length) text += '\n​';
 	for (let i = 0; i < servers.length; i++) {
 		let prefix = (/(?=.*\bau(s|ssie|stralian?)?\b)|(?=.*\boce(ani(a|c))?\b)/gi.test(servers[i].name)) ? '-' : '+';
@@ -100,7 +102,26 @@ function updateMainServerList(servers) {
 
 function updateAusServerList(servers) {
 	if (!messages.ausServerList) return;
-	// let text = '```md\n' + `# Servers with Australians - ${servers.length} servers, ${servers.reduce((t, x) => {return t + x.currentPlayers}, 0)} players` + '``````diff';
+	let members = client.guilds.get(config.guild).members.array().map(x => x.nickname || x.user.username);
+	servers = servers.filter(x => x.playerList.some(x => members.includes(x)));
+	let text = '```md\n' + `# Servers with Australians - ${servers.length} servers, ${servers.reduce((t, x) =>  t + x.currentPlayers, 0)} players` + '``````diff';
+	console.log(servers);
+	servers.forEach(server => {
+		server.playerList = server.playerList.filter(x => members.includes(x));
+		let prefix = (/(?=.*\bau(s|ssie|stralian?)?\b)|(?=.*\boce(ani(a|c))?\b)/gi.test(server.name)) ? '-' : '+';
+		let full = (server.playerPercentage >= 1) ? ' [FULL]' : '';
+		let specs = (server.spectatorPlayers > 0) ? ` (${server.spectatorPlayers} spec)` : '';
+		let extra = server.currentPlayers - server.playerList.length;
+		extra = extra ? `  (+${extra} more)` : '';
+		text += `\n${prefix} ${func.alignText(server.name, 50, -1)} ${func.alignText(server.currentPlayers, 3, 1)}/${server.maxPlayers}${full}${specs}\n​${server.playerList.join('  ')}${extra}\n`;
+	});
+	for (let i = 0; i < servers.length; i++) {
+		servers[i]
+	}
+	text += '```';
+	messages.ausServerList.edit(text).catch((err) => {
+		return console.log(`ERROR: Aus server list message too long (${text.length} characters)`);
+	});
 }
 
 client.login(config.token || process.env.TOKEN);
