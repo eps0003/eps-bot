@@ -1,6 +1,6 @@
-const Discord = require('discord.js');
 const config = require('./config.json');
 const index = require('./index.js');
+const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 
 module.exports = {
 	/**
@@ -77,5 +77,19 @@ module.exports = {
 
 	plural(text, val) {
 		return val === 1 ? text : text + 's';
+	},
+
+	httpGetAsync(url, callback) {
+		let xmlHttp = new XMLHttpRequest();
+		xmlHttp.onreadystatechange = () => {
+			if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+				return callback(JSON.parse(xmlHttp.responseText));
+			}
+			if (xmlHttp.readyState == 4 && xmlHttp.status == 404) {
+				return callback(null);
+			}
+		}
+		xmlHttp.open('GET', url, true);
+		xmlHttp.send(null);
 	}
 }

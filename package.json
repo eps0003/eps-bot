@@ -1,0 +1,11 @@
+{
+	"name": "joop-bot",
+	"author": "epsilon",
+	"version": "1.0.0",
+	"main": "index.js",
+	"dependencies": {
+		"discord.js": "^11.3.2",
+		"moment-timezone": "^0.5.17",
+		"xmlhttprequest": "1.8.0"
+	}
+}
