@@ -1,4 +1,4 @@
-const config = require('./-config.json');
+const config = require('./config.json');
 const index = require('./index.js');
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 
