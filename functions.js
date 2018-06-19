@@ -1,4 +1,4 @@
-const config = require('./config.json');
+const config = require('./-config.json');
 const index = require('./index.js');
 const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 
@@ -29,10 +29,10 @@ module.exports = {
 			user = index.client.guilds.get(config.guild).members.array().find(x => user === `${x.user.username}#${x.user.discriminator}`);
 		} else { // Name
 			let guildMembers = index.client.guilds.get(config.guild).members;
-			user = guildMembers.find(x => x.user.username.toLowerCase() === user.toLowerCase())
-				|| guildMembers.find(x => (x.nickname || x.user.username).toLowerCase() === user.toLowerCase())
-				|| guildMembers.find(x => x.user.username.toLowerCase().includes(user.toLowerCase()))
-				|| guildMembers.find(x => (x.nickname || x.user.username).toLowerCase().includes(user.toLowerCase()));
+			user = guildMembers.find(x => (x.nickname || x.user.username).toLowerCase() === user.toLowerCase())
+				|| guildMembers.find(x => x.user.username.toLowerCase() === user.toLowerCase())
+				|| guildMembers.find(x => (x.nickname || x.user.username).toLowerCase().includes(user.toLowerCase()))
+				|| guildMembers.find(x => x.user.username.toLowerCase().includes(user.toLowerCase()));
 		}
 		return user || null;
 	},
@@ -79,6 +79,10 @@ module.exports = {
 		return val === 1 ? text : text + 's';
 	},
 
+	capitalise(text) {
+		return text[0].toUpperCase() + text.slice(1);
+	},
+
 	httpGetAsync(url, callback) {
 		let xmlHttp = new XMLHttpRequest();
 		xmlHttp.onreadystatechange = () => {
@@ -91,5 +95,25 @@ module.exports = {
 		}
 		xmlHttp.open('GET', url, true);
 		xmlHttp.send(null);
-	}
+	},
+
+	/**
+     * Adds reactions in order to the specified message object
+     * @param {JSON} message
+     * @param {array} emoji
+     * @param {function} callback
+     */
+    addReactions(message, emoji, callback) {
+        if (!message) return;
+        let arg = 0;
+        (function react() {
+            message.react(emoji[arg++]).then(() => {
+                if (arg < emoji.length) react();
+                else if (callback) callback(message);
+            }).catch(() => {
+                if (arg < emoji.length) react();
+                else if (callback) callback(message);
+            });
+        })();
+    }
 }
