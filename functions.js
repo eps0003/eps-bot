@@ -5,7 +5,7 @@ const XMLHttpRequest = require('xmlhttprequest').XMLHttpRequest;
 module.exports = {
 	/**
 	 * Converts role ID, role name, role mention or role object into a role object
-	 * @param {*} role 
+	 * @param {*} role
 	 */
 	getRole(role) {
 		if (typeof role === 'object') return role;
@@ -75,8 +75,8 @@ module.exports = {
 		return padChar.repeat(Math.floor(width)) + text + padChar.repeat(Math.ceil(width));
 	},
 
-	plural(text, val) {
-		return val === 1 ? text : text + 's';
+	plural(val, text, suffix = 's') {
+		return val === 1 ? text : text + suffix;
 	},
 
 	capitalise(text) {
@@ -115,5 +115,49 @@ module.exports = {
                 else if (callback) callback(message);
             });
         })();
+	},
+
+	/**
+     * Fetches messages and then calls the callback with the fetched messages
+     * @param {JSON} messages
+     * @param {function} callback
+     */
+    fetchMessages(callback) {
+		let arg = 0;
+		let messages = Object.keys(config).filter(key => Object.keys(config[key]).includes('message')).map(key => config[key]);
+		let result = {};
+		fetch();
+		function fetch() {
+			let channel = index.client.guilds.get(config.guild).channels.get(messages[arg].channel);
+			if (!channel) return fetchError();
+			channel.fetchMessage(messages[arg].message).then(message => {
+				let key = Object.keys(config).find(key => config[key].message === messages[arg].message);
+				result[key] = message;
+				// console.log(`Fetched ${key}`);
+				if (++arg < messages.length) fetch();
+                else callback(result);
+			}).catch(() => {
+				fetchError();
+			});
+		};
+		function fetchError() {
+			let key = Object.keys(config).find(key => config[key].message === messages[arg].message);
+			result[key] = null;
+			console.log(`Error fetching ${key}`);
+			if (++arg < messages.length) fetch();
+			else callback(result);
+		}
+	},
+
+    /**
+     * Calculates the Wilson score interval used for Gather player rankings
+     * @param {number} pos number of wins
+     * @param {number} n total number of games
+     */
+    wilsonScoreInterval(pos, n) {
+        if (!n) return 0;
+        let z = 1.96;
+        let phat = 1 * pos / n;
+        return (phat + z * z / (2 * n) - z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / (1 + z * z / n);
     }
 }

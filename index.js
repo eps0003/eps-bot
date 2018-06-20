@@ -3,19 +3,33 @@ const client = new Discord.Client();
 const config = require('./config.json');
 const func = require('./functions.js');
 const moment = require('moment-timezone');
+const mysql = require('mysql');
 exports.client = client;
+
+const pool = mysql.createPool({
+	host: config.sql.host || process.env.HOST,
+	user: config.sql.user || process.env.USER,
+	password: config.sql.password || process.env.PASSWORD,
+	database: config.sql.database || process.env.DATABASE,
+	multipleStatements: true
+});
 
 var messages = {
 	mainServerList: null,
 	ausServerList: null,
 	dailyStats: null,
-	kagLadder: null
+	kagLadder: null,
+	gatherPastSeasons: null
 };
 
 var kagladder = {
 	lastmatch: -1,
 	panel: 'recent', // knight, archer, builder, recent
 	region: 'AUS' // AUS, EU, US
+}
+
+var gather = {
+	season: 6
 }
 
 var regex = {
@@ -26,26 +40,13 @@ var regex = {
 client.on('error', console.error);
 
 client.on('ready', () => {
-	console.log(`Logged in as ${client.user.username} on ${client.guilds.size} ${func.plural('server', client.guilds.size)}`);
-
-	func.getChannel(config.mainServerList.channel).fetchMessage(config.mainServerList.message).then(message => {
-		messages.mainServerList = message;
-		console.log('Fetched main server list');
-	}).catch(err => { if (err) console.log('Error fetching main server list') });
-	func.getChannel(config.ausServerList.channel).fetchMessage(config.ausServerList.message).then(message => {
-		messages.ausServerList = message;
-		console.log('Fetched AUS server list');
-	}).catch(err => { if (err) console.log('Error fetching AUS server list') });
-	func.getChannel(config.dailyStats.channel).fetchMessage(config.dailyStats.message).then(message => {
-		messages.dailyStats = message;
-		console.log('Fetched daily stats');
-	}).catch(err => { if (err) console.log('Error fetching daily stats') });
-	func.getChannel(config.kagLadder.channel).fetchMessage(config.kagLadder.message).then(message => {
-		messages.kagLadder = message;
-		console.log('Fetched daily stats');
+	console.log(`Logged in as ${client.user.username} on ${client.guilds.size} ${func.plural(client.guilds.size, 'server')}`);
+	func.fetchMessages(result => {
+		messages = result;
+		console.log('Bot ready!');
 		func.addReactions(messages.kagLadder, ['⚔', '🏹', '⚒', '🇦🇺', '🇪🇺', '🇺🇸', '🕑']);
-	}).catch(err => { if (err) console.log('Error fetching KAG Ladder') });
-
+		func.addReactions(messages.gatherPastSeasons, ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣']);
+	});
 	loop();
 });
 
@@ -102,7 +103,7 @@ client.on('message', async (message) => {
 			if (!servers) return; // API down?
 			servers = servers.serverList;
 			for (var i = 0; i < servers.length; i++) {
-				let player = servers[i].playerList.find(x => x.toLowerCase() === user.toLowerCase());
+				let player = servers[i].playerList.find(x => x.toUpperCase() === user.toUpperCase());
 				if (player) return message.channel.send(`**${player}** is on **${servers[i].name}** (${servers[i].currentPlayers}/${servers[i].maxPlayers})`);
 			}
 			func.httpGetAsync(`https://api.kag2d.com/v1/player/${user}`, player => {
@@ -116,7 +117,7 @@ client.on('message', async (message) => {
 
 client.on('messageReactionAdd', (reaction, user) => {
 	if (user.bot) return;
-	if (reaction.message.id === messages.kagLadder.id) {
+	if (messages.kagLadder && reaction.message.id === messages.kagLadder.id) {
 		reaction.remove(user);
 		if (reaction.emoji.name === '⚔' && kagladder.panel !== 'knight') {
 			kagladder.panel = 'knight';
@@ -163,11 +164,51 @@ client.on('messageReactionAdd', (reaction, user) => {
 			fetchingTooltip();
 			updateKagLadderMessage();
 		}
-		function fetchingTooltip() {
-			let fetching = 'Fetching data...';
-			if (reaction.message.content.indexOf(fetching) !== reaction.message.content.length - fetching.length) {
-				reaction.message.edit(reaction.message.content + fetching).catch(console.error);
-			}
+	}
+	if (messages.gatherPastSeasons && reaction.message.id === messages.gatherPastSeasons.id) {
+		reaction.remove(user);
+		if (reaction.emoji.name === '1⃣' && gather.season !== '1') {
+			gather.season = 1;
+			console.log('Changed Gather past seasons panel to season 1');
+			fetchingTooltip();
+			updateGatherPastSeasons();
+		}
+		if (reaction.emoji.name === '2⃣' && gather.season !== '2') {
+			gather.season = 2;
+			console.log('Changed Gather past seasons panel to season 2');
+			fetchingTooltip();
+			updateGatherPastSeasons();
+		}
+		if (reaction.emoji.name === '3⃣' && gather.season !== '3') {
+			gather.season = 3;
+			console.log('Changed Gather past seasons panel to season 3');
+			fetchingTooltip();
+			updateGatherPastSeasons();
+		}
+		if (reaction.emoji.name === '4⃣' && gather.season !== '4') {
+			gather.season = 4;
+			console.log('Changed Gather past seasons panel to season 4');
+			fetchingTooltip();
+			updateGatherPastSeasons();
+		}
+		if (reaction.emoji.name === '5⃣' && gather.season !== '5') {
+			gather.season = 5;
+			console.log('Changed Gather past seasons panel to season 5');
+			fetchingTooltip();
+			updateGatherPastSeasons();
+		}
+		if (reaction.emoji.name === '6⃣' && gather.season !== '6') {
+			gather.season = 6;
+			console.log('Changed Gather past seasons panel to season 6');
+			fetchingTooltip();
+			updateGatherPastSeasons();
+		}
+	}
+
+	function fetchingTooltip() {
+		let fetching = 'Fetching data...';
+		if (reaction.message.content.indexOf(fetching) !== reaction.message.content.length - fetching.length) {
+			reaction.message.edit(reaction.message.content + fetching).catch(console.error);
 		}
 	}
 });
@@ -178,13 +219,13 @@ function loop() {
 		if (!servers) return; /// API down?
 		servers = servers.serverList.sort((a, b) => {
 			if (a.currentPlayers === b.currentPlayers) {
-				return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+				return a.name.toUpperCase().localeCompare(b.name.toUpperCase());
 			}
 			return b.currentPlayers - a.currentPlayers;
 		});
 		servers.forEach(server => {
 			server.playerList.sort((a, b) => {
-				return a.toLowerCase().localeCompare(b.toLowerCase());
+				return a.toUpperCase().localeCompare(b.toUpperCase());
 			});
 		});
 		updateMainServerList(servers);
@@ -194,7 +235,7 @@ function loop() {
 		if (d.hour() === 3 && !d.minute() && !d.second()) updateDailyStatsMessage(servers);
 		let players = servers.reduce((t, x) => t + x.currentPlayers, 0);
 		client.user.setPresence({ status: 'online', game: { name: `${players} in KAG | ${config.prefix}help` } });
-		// client.user.setPresence({ status: 'online', game: { name: `with ${players} ${func.plural('player', players)} | ${config.prefix}help` } });
+		// client.user.setPresence({ status: 'online', game: { name: `with ${players} ${func.plural(players, 'player')} | ${config.prefix}help` } });
 	});
 	func.httpGetAsync('https://api.kagladder.com/match_counter', result => {
 		if (!result) return;
@@ -209,14 +250,14 @@ function loop() {
 function updateMainServerList(servers) {
 	if (!messages.mainServerList) return;
 	let players = servers.reduce((t, x) => t + x.currentPlayers, 0);
-	let text = '```md\n' + `# Server list - ${servers.length} ${func.plural('server', servers.length)}, ${players} ${func.plural('player', players)}` + '``````diff\n';
+	let text = '```md\n' + `# Server list - ${servers.length} ${func.plural(servers.length, 'server')}, ${players} ${func.plural(players, 'player')}` + '``````diff\n';
 	text += servers.map(server => {
 		let prefix = (/(?=.*\bau(s|ssie|stralian?)?\b)|(?=.*\boce(ani(a|c))?\b)/gi.test(server.name)) ? '-' : '+';
 		let full = (server.playerPercentage >= 1) ? ' [FULL]' : '';
 		let specs = (server.spectatorPlayers > 0) ? ` (${server.spectatorPlayers} spec)` : '';
 		return `${prefix} ${func.alignText(server.name, 50, -1)} ${func.alignText(server.currentPlayers, 3, 1)}/${server.maxPlayers}${full}${specs}\n​${server.playerList.join('  ')}`;
 	}).join('\n\n') + '\n```';
-	messages.mainServerList.channel.setName(`${servers.length}-${func.plural('server', servers.length)}_${players}-${func.plural('player', players)}`);
+	messages.mainServerList.channel.setName(`${servers.length}-${func.plural(servers.length, 'server')}_${players}-${func.plural(players, 'player')}`);
 	messages.mainServerList.edit(text).catch(console.error);
 }
 
@@ -225,7 +266,7 @@ function updateAusServerList(servers) {
 	let members = client.guilds.get(config.guild).members.array().filter(x => func.userHasRole(x, config.role.oceania)).map(x => x.nickname || x.user.username);
 	servers = servers.filter(x => x.playerList.some(x => members.includes(x)));
 	let players = servers.map(server => server.playerList.filter((x => members.includes(x)))).reduce((t, x) => t + x.length, 0);
-	let text = '```md\n' + `# Servers with Australians - ${servers.length} ${func.plural('server', servers.length)}, ${players} ${func.plural('player', players)}` + '``````diff\n';
+	let text = '```md\n' + `# Servers with Australians - ${servers.length} ${func.plural(servers.length, 'server')}, ${players} ${func.plural(players, 'player')}` + '``````diff\n';
 	text += servers.map(server => {
 		server.playerList = server.playerList.filter(x => members.includes(x));
 		let prefix = (/(?=.*\bau(s|ssie|stralian?)?\b)|(?=.*\boce(ani(a|c))?\b)/gi.test(server.name)) ? '-' : '+';
@@ -349,6 +390,7 @@ function updateDailyStatsMessage(servers) {
 }
 
 function updateKagLadderMessage() {
+	if (!messages.kagladder) return;
 	if (kagladder.panel === 'recent') {
 		func.httpGetAsync('https://api.kagladder.com/recent_match_history/19', matches => {
 			if (!matches) return;
@@ -377,6 +419,76 @@ function updateKagLadderMessage() {
 			return messages.kagLadder.edit(text).catch(console.error);
 		});
 	}
+}
+
+function updateGatherPastSeasons() {
+	if (!messages.gatherPastSeasons) return;
+	let size = 30;
+	pool.query(`SELECT * FROM season${gather.season} WHERE gamesplayed > 0`, (err, leaderboard) => {
+		if (err) throw err;
+		let totalgames = leaderboard.find(x => x.kagname === '+numgames+').gamesplayed;
+		leaderboard = leaderboard.filter(x => x.kagname !== '+numgames+');
+		if (gather.season === 1) { // Season 1
+			leaderboard.forEach(player => {
+				player.winrate = player.wins / (player.gamesplayed - player.substitutions) * 100;
+			});
+			leaderboard = leaderboard.filter(x => x.gamesplayed >= 10).sort((a, b) => {
+				if (a.winrate === b.winrate) {
+					if (a.gamesplayed === b.gamesplayed) {
+						return a.kagname.toUpperCase().localeCompare(b.kagname.toUpperCase());
+					}
+					return b.gamesplayed - a.gamesplayed;
+				}
+				return b.winrate - a.winrate;
+			}).slice(0, size).map((player, i) => {
+				return `${func.alignText(++i, 2, 1)}|${func.alignText(player.kagname, 20, 0)}| ${func.alignText(player.gamesplayed, 3, 1)} | ${func.alignText(player.wins, 3, 1)}  | ${func.alignText(player.losses, 3, 1)}  |${func.alignText(player.winrate.toFixed(2), 6, 1)}%`;
+			});
+			leaderboard.unshift('++|      Username      |Games| Wins |Losses|Winrate');
+			leaderboard.push('', '- This may have missing or incorrect data since the gather database was introduced mid way through the season');
+		} else if (gather.season >= 2 && gather.season <= 5) { // Seasons 2-5
+			leaderboard.forEach(player => {
+				player.winrate = (player.wins + player.substitutionwins) / (player.gamesplayed + player.substitutionwins + player.desertionlosses) * 100;
+				player.score = 2000 + (10 * (player.wins - player.losses));
+			});
+			leaderboard = leaderboard.filter(x => x.gamesplayed >= 10).sort((a, b) => {
+				if (a.score === b.score) {
+					if (a.winrate === b.winrate) {
+						if (a.gamesplayed === b.gamesplayed) {
+							return a.kagname.toUpperCase().localeCompare(b.kagname.toUpperCase());
+						}
+						return b.gamesplayed - a.gamesplayed;
+					}
+					return b.winrate - a.winrate;
+				}
+				return b.score - a.score;
+			}).slice(0, size).map((player, i) => {
+				return `${func.alignText(++i, 2, 1)}|${func.alignText(player.kagname, 20, 0)}| ${func.alignText(player.gamesplayed, 3, 1)} | ${func.alignText(player.wins, 3, 1)}  | ${func.alignText(player.losses, 3, 1)}  |${func.alignText(player.winrate.toFixed(2), 6, 1)}%| ${func.alignText(player.score, 4, 1)}`;
+			});
+			leaderboard.unshift('++|      Username      |Games| Wins |Losses|Winrate|Score');
+		} else { // Season 6 onwards
+			leaderboard.forEach(player => {
+				player.winrate = (player.wins + player.substitutionwins) / (player.gamesplayed + player.substitutionwins + player.desertionlosses) * 100;
+				player.score = func.wilsonScoreInterval(Math.max(0, player.wins - player.desertions / 2), player.gamesplayed) * 10000;
+			});
+			leaderboard = leaderboard.filter(x => x.gamesplayed > totalgames * 0.1).sort((a, b) => {
+				if (a.score === b.score) {
+					if (a.winrate === b.winrate) {
+						if (a.gamesplayed === b.gamesplayed) {
+							return a.kagname.toUpperCase().localeCompare(b.kagname.toUpperCase());
+						}
+						return b.gamesplayed - a.gamesplayed;
+					}
+					return b.winrate - a.winrate;
+				}
+				return b.score - a.score;
+			}).slice(0, size).map((player, i) => {
+				return `${func.alignText(++i, 2, 1)}|${func.alignText(player.kagname, 20, 0)}| ${func.alignText(player.gamesplayed, 3, 1)} | ${func.alignText(player.wins, 3, 1)}  | ${func.alignText(player.losses, 3, 1)}  |${func.alignText(player.winrate.toFixed(2), 6, 1)}%| ${func.alignText(Math.floor(player.score), 4, 1)}`;
+			});
+			leaderboard.unshift('++|      Username      |Games| Wins |Losses|Winrate|Score');
+		}
+		let text = '```md\n' + `# Gather season ${gather.season} leaderboard - ${totalgames} ${func.plural(totalgames, 'match', 'es')}` + '``````diff\n' + leaderboard.join('\n') + '```';
+		messages.gatherPastSeasons.edit(text).catch(console.error);
+	});
 }
 
 client.login(config.token || process.env.TOKEN);
