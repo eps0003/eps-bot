@@ -19,7 +19,8 @@ var messages = {
 	ausServerList: null,
 	dailyStats: null,
 	kagLadder: null,
-	gatherPastSeasons: null
+	gatherPastSeasons: null,
+	gatherRecentMatch: null
 };
 
 var kagladder = {
@@ -44,7 +45,9 @@ client.on('ready', () => {
 	func.fetchMessages(result => {
 		messages = result;
 		console.log('Bot ready!');
+		updateKagLadderMessage();
 		func.addReactions(messages.kagLadder, ['⚔', '🏹', '⚒', '🇦🇺', '🇪🇺', '🇺🇸', '🕑']);
+		updateGatherPastSeasons();
 		func.addReactions(messages.gatherPastSeasons, ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣']);
 	});
 	loop();
@@ -55,6 +58,7 @@ client.on('message', async (message) => {
 
 	if (message.author.id === config.member.gatherbot && /Game #\d+ has ended/g.test(message.content)) {
 		if (dailyStats) dailyStats.gatherMatches++;
+		updateGatherRecentMatch();
 	}
 
 	if (message.author.bot || message.content.indexOf(config.prefix)) return;
@@ -90,7 +94,7 @@ client.on('message', async (message) => {
 
 	if (command === 'ping' && isadmin) {
 		let msg = await message.channel.send('Ping?');
-		return msg.edit(`Pong! Latency: ${msg.createdTimestamp - message.createdTimestamp} ms. API latency: ${Math.round(client.ping)} ms`);
+		return msg.edit(`Pong! Latency: ${msg.createdTimestamp - message.createdTimestamp} ms. API latency: ${Math.round(client.ping)} ms`).catch(() => {});
 	}
 
 	if (command === 'find') {
@@ -104,12 +108,12 @@ client.on('message', async (message) => {
 			servers = servers.serverList;
 			for (var i = 0; i < servers.length; i++) {
 				let player = servers[i].playerList.find(x => x.toUpperCase() === user.toUpperCase());
-				if (player) return message.channel.send(`**${player}** is on **${servers[i].name}** (${servers[i].currentPlayers}/${servers[i].maxPlayers})`);
+				if (player) return msg.edit(`**${player}** is on **${servers[i].name}** (${servers[i].currentPlayers}/${servers[i].maxPlayers})`).catch(() => {});
 			}
 			func.httpGetAsync(`https://api.kag2d.com/v1/player/${user}`, player => {
-				if (!player) return msg.edit(`**${user}** doesn't exist`);
+				if (!player) return msg.edit(`**${user}** doesn't exist`).catch(() => {});
 				user = player.playerInfo.username;
-				return msg.edit(`**${user}** isn't on a server`);
+				return msg.edit(`**${user}** isn't on a server`).catch(() => {});
 			});
 		});
 	}
@@ -390,7 +394,7 @@ function updateDailyStatsMessage(servers) {
 }
 
 function updateKagLadderMessage() {
-	if (!messages.kagladder) return;
+	if (!messages.kagLadder) return;
 	if (kagladder.panel === 'recent') {
 		func.httpGetAsync('https://api.kagladder.com/recent_match_history/19', matches => {
 			if (!matches) return;
@@ -486,8 +490,30 @@ function updateGatherPastSeasons() {
 			});
 			leaderboard.unshift('++|      Username      |Games| Wins |Losses|Winrate|Score');
 		}
-		let text = '```md\n' + `# Gather season ${gather.season} leaderboard - ${totalgames} ${func.plural(totalgames, 'match', 'es')}` + '``````diff\n' + leaderboard.join('\n') + '```';
+		let text = '```md\n' + `# Gather season ${gather.season} leaderboard - ${totalgames} ${func.plural(totalgames, 'match', 'es')}` + '``````diff\n' + leaderboard.join('\n') + '\n```';
 		messages.gatherPastSeasons.edit(text).catch(console.error);
+	});
+}
+
+function updateGatherRecentMatch() {
+	if (!messages.gatherRecentMatch) return;
+	pool.query('SELECT kagName, team FROM playerGames ORDER BY gameid DESC, won DESC, kagname ASC LIMIT 10; SELECT * FROM games ORDER BY gameid DESC LIMIT 1', (err, result) => {
+		if (err) throw err;
+		let blueteam = result[0].filter(x => !x.team).map(x => x.kagName).join('  ');
+		let redteam = result[0].filter(x => x.team).map(x => x.kagName).join('  ');
+		let winner = result[0][0].team;
+		let gameid = result[1][0].gameId;
+		let duration = func.secondsToDuration(result[1][0].gameLengthSeconds || 0) || 'None';
+		let d = moment().tz('Australia/Melbourne');
+		let date = d.format('dddd, Do MMMM');
+		let time = d.format('h:mma z');
+
+		let text = '```md\n' + `# Gather match #${gameid} summary` + '``````diff\n';
+		text += `${winner ? '+' : '-'} Blue team${winner ? ' (winner)' : ''}\n${blueteam}\n\n`;
+		text += `${winner ? '-' : '+'} Red team${winner ? '' : ' (winner)'}\n${redteam}\n\n`;
+		text += `Date: ${date}\nTime: ${time}\nDuration: ${duration}`;
+		text += '```';
+		messages.gatherRecentMatch.edit(text);
 	});
 }
 

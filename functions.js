@@ -75,14 +75,29 @@ module.exports = {
 		return padChar.repeat(Math.floor(width)) + text + padChar.repeat(Math.ceil(width));
 	},
 
+	/**
+	 * Pluralises the specified string with the optional suffix depending on the given value
+	 * @param {number} val
+	 * @param {string} text
+	 * @param {string} suffix
+	 */
 	plural(val, text, suffix = 's') {
 		return val === 1 ? text : text + suffix;
 	},
 
+	/**
+	 * Capitalises the first letter of the specified text
+	 * @param {string} text
+	 */
 	capitalise(text) {
 		return text[0].toUpperCase() + text.slice(1);
 	},
 
+	/**
+	 *
+	 * @param {string} url
+	 * @param {function} callback
+	 */
 	httpGetAsync(url, callback) {
 		let xmlHttp = new XMLHttpRequest();
 		xmlHttp.onreadystatechange = () => {
@@ -159,5 +174,21 @@ module.exports = {
         let z = 1.96;
         let phat = 1 * pos / n;
         return (phat + z * z / (2 * n) - z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / (1 + z * z / n);
-    }
+	},
+
+	/**
+	 * Converts seconds to Hh Mm Ss format
+	 * @param {number} seconds
+	 */
+	secondsToDuration(seconds) {
+		let h = Math.floor(seconds / 3600);
+		let m = Math.floor(seconds % 3600 / 60);
+		let s = Math.floor(seconds % 3600 % 60);
+
+		let hDisplay = (h > 0) ? h + 'h ' : '';
+		let mDisplay = (m > 0) ? m + 'm ' : '';
+		let sDisplay = (s > 0) ? s + 's' : '';
+
+		return hDisplay + mDisplay + sDisplay;
+	}
 }
