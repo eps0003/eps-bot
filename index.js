@@ -11,7 +11,8 @@ const pool = mysql.createPool({
 	user: config.sql.user || process.env.USER,
 	password: config.sql.password || process.env.PASSWORD,
 	database: config.sql.database || process.env.DATABASE,
-	multipleStatements: true
+	multipleStatements: true,
+	timeout: 60000
 });
 
 var messages = {
