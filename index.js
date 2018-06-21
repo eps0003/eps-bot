@@ -11,8 +11,7 @@ const pool = mysql.createPool({
 	user: config.sql.user || process.env.USER,
 	password: config.sql.password || process.env.PASSWORD,
 	database: config.sql.database || process.env.DATABASE,
-	multipleStatements: true,
-	connectTimeout: 60000
+	multipleStatements: true
 });
 
 var messages = {
@@ -48,8 +47,8 @@ client.on('ready', () => {
 		console.log('Bot ready!');
 		updateKagLadderMessage();
 		func.addReactions(messages.kagLadder, ['⚔', '🏹', '⚒', '🇦🇺', '🇪🇺', '🇺🇸', '🕑']);
-		updateGatherPastSeasons();
-		func.addReactions(messages.gatherPastSeasons, ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣']);
+		// updateGatherPastSeasons();
+		// func.addReactions(messages.gatherPastSeasons, ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣']);
 	});
 	loop();
 });
@@ -59,7 +58,7 @@ client.on('message', async (message) => {
 
 	if (message.author.id === config.member.gatherbot && /Game #\d+ has ended/g.test(message.content)) {
 		if (dailyStats) dailyStats.gatherMatches++;
-		updateGatherRecentMatch();
+		// updateGatherRecentMatch();
 	}
 
 	if (message.author.bot || message.content.indexOf(config.prefix)) return;
@@ -170,7 +169,7 @@ client.on('messageReactionAdd', (reaction, user) => {
 			updateKagLadderMessage();
 		}
 	}
-	if (messages.gatherPastSeasons && reaction.message.id === messages.gatherPastSeasons.id) {
+	if (0 && messages.gatherPastSeasons && reaction.message.id === messages.gatherPastSeasons.id) { // DISABLED
 		reaction.remove(user);
 		if (reaction.emoji.name === '1⃣' && gather.season !== '1') {
 			gather.season = 1;
