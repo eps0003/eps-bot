@@ -11,9 +11,7 @@ const pool = mysql.createPool({
 	user: config.sql.user || process.env.USER,
 	password: config.sql.password || process.env.PASSWORD,
 	database: config.sql.database || process.env.DATABASE,
-	multipleStatements: true,
-	timeout: 60000,
-	connectTimeout: 60000
+	multipleStatements: true
 });
 
 var messages = {
@@ -52,10 +50,6 @@ client.on('ready', () => {
 		// updateGatherPastSeasons();
 		// func.addReactions(messages.gatherPastSeasons, ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣']);
 	});
-	pool.query('SELECT * FROM players LIMIT 20', (err, result) => {
-		if (err) throw err;
-		console.log(result);
-	})
 	loop();
 });
 
