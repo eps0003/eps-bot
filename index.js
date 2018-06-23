@@ -49,11 +49,11 @@ client.on('ready', () => {
 		func.addReactions(messages.kagLadder, ['⚔', '🏹', '⚒', '🇦🇺', '🇪🇺', '🇺🇸', '🕑']);
 		// updateGatherPastSeasons();
 		// func.addReactions(messages.gatherPastSeasons, ['1⃣', '2⃣', '3⃣', '4⃣', '5⃣', '6⃣']);
-		pool.query('SELECT * FROM players LIMIT 20', (err, result) => {
-			if (err) throw err;
-			console.log(result);
-		})
 	});
+	pool.query('SELECT * FROM players LIMIT 20', (err, result) => {
+		if (err) throw err;
+		console.log(result);
+	})
 	loop();
 });
 
