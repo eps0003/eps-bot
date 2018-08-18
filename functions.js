@@ -22,6 +22,7 @@ module.exports = {
 	 * @param {*} user
 	 */
 	getUser(user) {
+		if (!user) return null;
 		if (typeof user === 'object') return user;
 		if (/<@!?\d+>/.test(user) || !isNaN(user)) { // Mention or ID
 			user = index.client.guilds.get(config.guild).members.get(user.match(/\d+/)[0]);
@@ -118,18 +119,18 @@ module.exports = {
      * @param {array} emoji
      * @param {function} callback
      */
-    addReactions(message, emoji, callback) {
-        if (!message) return;
-        let arg = 0;
-        (function react() {
-            message.react(emoji[arg++]).then(() => {
-                if (arg < emoji.length) react();
-                else if (callback) callback(message);
-            }).catch(() => {
-                if (arg < emoji.length) react();
-                else if (callback) callback(message);
-            });
-        })();
+	addReactions(message, emoji, callback) {
+		if (!message) return;
+		let arg = 0;
+		(function react() {
+			message.react(emoji[arg++]).then(() => {
+				if (arg < emoji.length) react();
+				else if (callback) callback(message);
+			}).catch(() => {
+				if (arg < emoji.length) react();
+				else if (callback) callback(message);
+			});
+		})();
 	},
 
 	/**
@@ -137,7 +138,7 @@ module.exports = {
      * @param {JSON} messages
      * @param {function} callback
      */
-    fetchMessages(callback) {
+	fetchMessages(callback) {
 		let arg = 0;
 		let messages = Object.keys(config).filter(key => Object.keys(config[key]).includes('message')).map(key => config[key]);
 		let result = {};
@@ -150,7 +151,7 @@ module.exports = {
 				result[key] = message;
 				// console.log(`Fetched ${key}`);
 				if (++arg < messages.length) fetch();
-                else callback(result);
+				else callback(result);
 			}).catch(() => {
 				fetchError();
 			});
@@ -169,11 +170,11 @@ module.exports = {
      * @param {number} pos number of wins
      * @param {number} n total number of games
      */
-    wilsonScoreInterval(pos, n) {
-        if (!n) return 0;
-        let z = 1.96;
-        let phat = 1 * pos / n;
-        return (phat + z * z / (2 * n) - z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / (1 + z * z / n);
+	wilsonScoreInterval(pos, n) {
+		if (!n) return 0;
+		let z = 1.96;
+		let phat = 1 * pos / n;
+		return (phat + z * z / (2 * n) - z * Math.sqrt((phat * (1 - phat) + z * z / (4 * n)) / n)) / (1 + z * z / n);
 	},
 
 	/**

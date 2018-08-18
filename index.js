@@ -80,9 +80,9 @@ client.on('message', async (message) => {
 			`The ${func.getRole(config.role.ingame).name} role is given to players who are on a KAG server (and their Discord name is their KAG username) or have their game presence showing. Offline/invisible players aren't displayed on the members list under the role`,
 		].map(x => '⦁ ' + x).join('\n');
 		let credit = [
-			`${client.user.username} made by [epsilon](https://forum.thd.vg/members/epsilon.16800/)`,
-			// `Gather made by [cameron1010](https://forum.thd.vg/members/cameron1010.6469/)`,
-			`KAGLadder Rated 1v1 made by [Eluded](https://forum.thd.vg/members/eluded.8036/) and can be found [here](https://kagladder.com/)`
+			`${client.user.username} made by [epsilon](https://forum.thd.vg/members/16800/)`,
+			// `Gather made by [cameron1010](https://forum.thd.vg/members/6469/)`,
+			`KAGLadder Rated 1v1 made by [Eluded](https://forum.thd.vg/members/8036/) and can be found [here](https://kagladder.com/)`
 		].map(x => '⦁ ' + x).join('\n');
 		return message.author.send(new Discord.RichEmbed()
 			.setColor(3447003)
@@ -94,7 +94,7 @@ client.on('message', async (message) => {
 
 	if (command === 'ping' && isadmin) {
 		let msg = await message.channel.send('Ping?');
-		return msg.edit(`Pong! Latency: ${msg.createdTimestamp - message.createdTimestamp} ms. API latency: ${Math.round(client.ping)} ms`).catch(() => {});
+		return msg.edit(`Pong! Latency: ${msg.createdTimestamp - message.createdTimestamp} ms. API latency: ${Math.round(client.ping)} ms`).catch(() => { });
 	}
 
 	if (command === 'find') {
@@ -104,16 +104,17 @@ client.on('message', async (message) => {
 		if (user) user = user.nickname || user.user.username;
 		else user = args[0];
 		func.httpGetAsync(`https://api.kag2d.com/v1/game/thd/kag/servers?filters=[{"field":"current","op":"eq","value":"true"},{"field":"connectable","op":"eq","value":true},{"field":"currentPlayers","op":"gt","value":"0"}]`, servers => {
-			if (!servers) return; // API down?
+			if (!servers) return msg.edit('Unable to retrieve KAG servers. Please try again later').catch(() => { }); // API down?
 			servers = servers.serverList;
-			for (var i = 0; i < servers.length; i++) {
-				let player = servers[i].playerList.find(x => x.toUpperCase() === user.toUpperCase());
-				if (player) return msg.edit(`**${player}** is on **${servers[i].name}** (${servers[i].currentPlayers}/${servers[i].maxPlayers})`).catch(() => {});
+			for (server of servers) {
+				let player = server.playerList.find(x => x.toUpperCase() === user.toUpperCase());
+				let url = server.password ? '' : `\n<https://furai.pl/joingame/kag/${server.IPv4Address}/${server.port}>`;
+				if (player) return msg.edit(`**${player}** is on **${server.name}** (${server.currentPlayers}/${server.maxPlayers})${url}`).catch(() => { });
 			}
 			func.httpGetAsync(`https://api.kag2d.com/v1/player/${user}`, player => {
-				if (!player) return msg.edit(`**${user}** doesn't exist`).catch(() => {});
+				if (!player) return msg.edit(`**${user}** doesn't exist`).catch(() => { });
 				user = player.playerInfo.username;
-				return msg.edit(`**${user}** isn't on a server`).catch(() => {});
+				return msg.edit(`**${user}** isn't on a server`).catch(() => { });
 			});
 		});
 	}
@@ -234,7 +235,7 @@ function loop() {
 		});
 		updateMainServerList(servers);
 		updateAusServerList(servers);
-		updateIngameRole(servers);
+		updateInGameRole(servers);
 		updateDailyStatsData(servers);
 		if (d.hour() === 3 && !d.minute() && !d.second()) updateDailyStatsMessage(servers);
 		let players = servers.reduce((t, x) => t + x.currentPlayers, 0);
@@ -277,13 +278,13 @@ function updateAusServerList(servers) {
 		let full = (server.playerPercentage >= 1) ? ' [FULL]' : '';
 		let specs = (server.spectatorPlayers > 0) ? ` (${server.spectatorPlayers} spec)` : '';
 		let extra = server.currentPlayers - server.playerList.length;
-		extra = extra ? `  (+${extra} more)` : '';
+		extra = (extra > 0) ? `  (+${extra} more)` : '';
 		return `${prefix} ${func.alignText(server.name, 50, -1)} ${func.alignText(server.currentPlayers, 3, 1)}/${server.maxPlayers}${full}${specs}\n​${server.playerList.join('  ')}${extra}`;
 	}).join('\n\n') + '\n```';
 	messages.ausServerList.edit(text).catch(console.error);
 }
 
-function updateIngameRole(servers) {
+function updateInGameRole(servers) {
 	let role = func.getRole(config.role.ingame);
 	if (!role) return;
 	let players = [].concat.apply([], servers.map(x => x.playerList));
@@ -292,12 +293,12 @@ function updateIngameRole(servers) {
 		if (players.includes(member.nickname || member.user.username) || (member.presence.game && member.presence.game.name === `King Arthur's Gold`)) {
 			if (!func.userHasRole(member, role)) {
 				member.addRole(role);
-				console.log(`+ ${member.nickname || member.user.username} (${role.name})`);
+				// console.log(`+ ${member.nickname || member.user.username} (${role.name})`);
 			}
 		} else {
 			if (func.userHasRole(member, role)) {
 				member.removeRole(role);
-				console.log(`- ${member.nickname || member.user.username} (${role.name})`);
+				// console.log(`- ${member.nickname || member.user.username} (${role.name})`);
 			}
 		}
 	});
@@ -389,7 +390,7 @@ function updateDailyStatsMessage(servers) {
 	}
 	text += '```';
 	messages.dailyStats.edit(text).catch(console.error);
-	console.log(`Updated daily stats for ${d}`)
+	console.log(`Updated daily stats for ${d}`);
 	resetDailyStatsData();
 }
 
@@ -406,9 +407,9 @@ function updateKagLadderMessage() {
 				// if (match.region === 'US') timezone = 'America/New_York';
 				let datetime = moment(match.match_time * 1000).tz(timezone).format('DD/MM HH:mma z');
 				// Winner
-                let p1win = ' ';
-                let p2win = ' ';
-                (match.player1_score > match.player2_score) ? p1win = '<' : p2win = '>';
+				let p1win = ' ';
+				let p2win = ' ';
+				(match.player1_score > match.player2_score) ? p1win = '<' : p2win = '>';
 				return `${func.alignText(match.id % 100, 2, 1)}|${func.alignText(datetime, 18, -1)}|  ${match.region.substr(0, 2)}  |${func.alignText(func.capitalise(match.kag_class), 7, -1)}|${func.alignText(match.player1, 20, 1)} ${p1win}${func.alignText(match.player1_score, 2, 1)}:${func.alignText(match.player2_score, 2, -1)}${p2win} ${func.alignText(match.player2, 20, -1)}| ${func.alignText(Math.abs(match.player1_rating_change), 3, 1)}`;
 			}).join('\n') + '\n```'; //Class:       Region:       Recent:|Knight  Archer Builder   AUS       EU         US     Recent
 			return messages.kagLadder.edit(text).catch(console.error);
