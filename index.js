@@ -97,7 +97,7 @@ client.on('message', async (message) => {
 		return msg.edit(`Pong! Latency: ${msg.createdTimestamp - message.createdTimestamp} ms. API latency: ${Math.round(client.ping)} ms`).catch(() => { });
 	}
 
-	if (command === 'find') {
+	if (0 && command === 'find') { // DISABLED
 		if (!args[0]) return message.channel.send('Please specify a player or Discord user');
 		let msg = await message.channel.send('Finding user...');
 		let user = func.getUser(args[0]);

@@ -35,9 +35,9 @@
 		"message": "411049784800182282"
 	},
 	"sql": {
-        "host": "",
-        "user": "",
-        "password": "",
-        "database": ""
+		"host": "",
+		"user": "",
+		"password": "",
+		"database": ""
 	}
 }
