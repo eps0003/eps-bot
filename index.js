@@ -86,7 +86,7 @@ client.on('message', async (message) => {
 		].map(x => '⦁ ' + x).join('\n');
 		return message.author.send(new Discord.RichEmbed()
 			.setColor(3447003)
-			.addField('Commands', commands + '\n​')
+			// .addField('Commands', commands + '\n​')
 			.addField('Bot usage', usage + '\n​')
 			.addField('Credit', credit)
 		);
